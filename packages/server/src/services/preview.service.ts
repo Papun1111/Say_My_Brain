@@ -73,16 +73,33 @@ const getYouTubePreview = async (url:string): Promise<PreviewData> => {
 /**
  * Fetches preview data from oEmbed-compatible sites like X and Instagram.
  */
+const sanitizeInstagramUrl = (url: string): string => {
+    try {
+        const urlObject = new URL(url);
+        // Reconstruct the URL with only the protocol, hostname, and pathname.
+        // This effectively removes all search parameters and the hash.
+        return `${urlObject.protocol}//${urlObject.hostname}${urlObject.pathname}`;
+    } catch (error) {
+        console.error("Could not parse URL for sanitization, returning original URL:", url);
+        return url; // Return original URL if parsing fails for any reason
+    }
+};
 const getOEmbedPreview = async (url: string, platform: Platform): Promise<PreviewData> => {
     let oembedUrl: string;
+    let finalUrl = url;
+
+    // **THE FIX IS HERE:** We now sanitize the URL before using it.
+    if (platform === 'INSTAGRAM') {
+        finalUrl = sanitizeInstagramUrl(url);
+    }
 
     if (platform === 'X') {
-        oembedUrl = `https://publish.twitter.com/oembed?url=${encodeURIComponent(url)}`;
+        oembedUrl = `https://publish.twitter.com/oembed?url=${encodeURIComponent(finalUrl)}`;
     } else if (platform === 'INSTAGRAM') {
         const appId = process.env.FB_APP_ID;
         const clientToken = process.env.FB_CLIENT_TOKEN;
         if (!appId || !clientToken) throw new Error('Facebook App ID and Client Token are required for Instagram previews.');
-        oembedUrl = `https://graph.facebook.com/v19.0/instagram_oembed?url=${encodeURIComponent(url)}&access_token=${appId}|${clientToken}`;
+        oembedUrl = `https://graph.facebook.com/v19.0/instagram_oembed?url=${encodeURIComponent(finalUrl)}&access_token=${appId}|${clientToken}`;
     } else {
         throw new Error('Unsupported oEmbed platform');
     }
