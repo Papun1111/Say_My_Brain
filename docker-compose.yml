@@ -1,0 +1,37 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  db:
+    image: postgres:15
+    container_name: secondbrain_db
+    restart: always
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: secondbrain
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  # Backend API Server
+  server:
+    build:
+      context: ./packages/server
+      dockerfile: Dockerfile
+    container_name: secondbrain_server
+    restart: always
+    depends_on:
+      - db
+    ports:
+      - "5001:5001"
+    environment:
+      - DATABASE_URL=postgresql://user:password@db:5432/secondbrain?schema=public
+      - PORT=5001
+      - GEMINI_API_KEY=${GEMINI_API_KEY} # Pass the key from your host .env file
+    env_file:
+      - .env # Load host .env file for GEMINI_API_KEY
+
+volumes:
+  postgres_data:

@@ -1,0 +1,31 @@
+@baseUrl = http://localhost:5001/api
+
+### Get all links
+GET {{baseUrl}}/links
+
+### Get preview for a URL
+POST {{baseUrl}}/preview
+Content-Type: application/json
+
+{
+    "url": "https://www.youtube.com/watch?v=6ZfuNTqbHE8"
+}
+
+### Create a new link
+POST {{baseUrl}}/links
+Content-Type: application/json
+
+{
+    "url": "https://www.youtube.com/watch?v=6ZfuNTqbHE8"
+}
+
+### Delete a link (change ID)
+DELETE {{baseUrl}}/links/3
+
+### Chat with a link (change ID)
+POST {{baseUrl}}/links/1/chat
+Content-Type: application/json
+
+{
+    "prompt": "What is this video about in 3 bullet points?"
+}

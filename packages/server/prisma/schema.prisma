@@ -1,0 +1,29 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Link {
+  id           Int      @id @default(autoincrement())
+  url          String   @unique
+  title        String
+  description  String?
+  thumbnailUrl String?
+  platform     Platform
+  context      String? // Extracted text content for Gemini
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@map("links")
+}
+
+enum Platform {
+  YOUTUBE
+  X
+  INSTAGRAM
+  OTHER
+}
