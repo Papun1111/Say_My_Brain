@@ -102,6 +102,7 @@ const getOEmbedPreview = async (url: string, platform: Platform): Promise<Previe
     // **THE FIX IS HERE:** We now sanitize the URL before using it.
     if (platform === 'INSTAGRAM') {
         finalUrl = sanitizeInstagramUrl(url);
+         console.log("✅ SANITIZED URL FOR META:", finalUrl); 
     }
 
     if (platform === 'X') {
