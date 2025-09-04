@@ -74,14 +74,25 @@ const getYouTubePreview = async (url:string): Promise<PreviewData> => {
  * Fetches preview data from oEmbed-compatible sites like X and Instagram.
  */
 const sanitizeInstagramUrl = (url: string): string => {
+    // Regex to capture the base URL of an Instagram post, reel, story, or TV video.
+    // It matches up to the unique ID, ignoring any trailing slashes or query parameters.
+    const instagramUrlRegex = /(https:\/\/(?:www\.)?instagram\.com\/(p|reel|tv|stories)\/[a-zA-Z0-9\-_]+)/;
+    const match = url.match(instagramUrlRegex);
+
+    if (match && match[0]) {
+        // Return the first full match (the clean URL).
+        return match[0];
+    }
+    
+    // If regex fails (e.g., a link to a profile), fall back to the previous method.
+    // This makes the function more robust.
+    console.warn("Regex did not match a specific Instagram post URL, falling back to basic sanitization for:", url);
     try {
         const urlObject = new URL(url);
-        // Reconstruct the URL with only the protocol, hostname, and pathname.
-        // This effectively removes all search parameters and the hash.
         return `${urlObject.protocol}//${urlObject.hostname}${urlObject.pathname}`;
     } catch (error) {
         console.error("Could not parse URL for sanitization, returning original URL:", url);
-        return url; // Return original URL if parsing fails for any reason
+        return url;
     }
 };
 const getOEmbedPreview = async (url: string, platform: Platform): Promise<PreviewData> => {
@@ -99,7 +110,7 @@ const getOEmbedPreview = async (url: string, platform: Platform): Promise<Previe
         const appId = process.env.FB_APP_ID;
         const clientToken = process.env.FB_CLIENT_TOKEN;
         if (!appId || !clientToken) throw new Error('Facebook App ID and Client Token are required for Instagram previews.');
-        oembedUrl = `https://graph.facebook.com/v19.0/instagram_oembed?url=${encodeURIComponent(finalUrl)}&access_token=${appId}|${clientToken}`;
+         oembedUrl = `https://graph.facebook.com/v19.0/instagram_oembed?url=${encodeURIComponent(finalUrl)}&access_token=${appId}|${clientToken}`;
     } else {
         throw new Error('Unsupported oEmbed platform');
     }
