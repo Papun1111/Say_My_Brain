@@ -92,31 +92,79 @@ const getYouTubePreview = async (url) => {
         context: snippet.description || snippet.title,
     };
 };
+const sanitizeXUrl = (url) => {
+    const xUrlRegex = /(https:\/\/(?:www\.)?(?:twitter|x)\.com\/[a-zA-Z0-9_]+\/status\/[0-9]+)/;
+    const match = url.match(xUrlRegex);
+    if (match && match[0])
+        return match[0];
+    try {
+        const urlObject = new URL(url);
+        return `${urlObject.protocol}//${urlObject.hostname}${urlObject.pathname}`;
+    }
+    catch {
+        return url;
+    }
+};
 /**
  * Fetches preview data from oEmbed-compatible sites like X and Instagram.
  */
+const sanitizeInstagramUrl = (url) => {
+    // Regex to capture the base URL of an Instagram post, reel, story, or TV video.
+    // It matches up to the unique ID, ignoring any trailing slashes or query parameters.
+    const instagramUrlRegex = /(https:\/\/(?:www\.)?instagram\.com\/(p|reel|tv|stories)\/[a-zA-Z0-9\-_]+)/;
+    const match = url.match(instagramUrlRegex);
+    if (match && match[0]) {
+        // Return the first full match (the clean URL).
+        return match[0];
+    }
+    // If regex fails (e.g., a link to a profile), fall back to the previous method.
+    // This makes the function more robust.
+    console.warn("Regex did not match a specific Instagram post URL, falling back to basic sanitization for:", url);
+    try {
+        const urlObject = new URL(url);
+        return `${urlObject.protocol}//${urlObject.hostname}${urlObject.pathname}`;
+    }
+    catch (error) {
+        console.error("Could not parse URL for sanitization, returning original URL:", url);
+        return url;
+    }
+};
 const getOEmbedPreview = async (url, platform) => {
     let oembedUrl;
+    let finalUrl = url;
+    // Sanitize the URL based on the platform.
+    if (platform === 'INSTAGRAM') {
+        finalUrl = sanitizeInstagramUrl(url);
+    }
+    else if (platform === 'X') {
+        finalUrl = sanitizeXUrl(url);
+    }
     if (platform === 'X') {
-        oembedUrl = `https://publish.twitter.com/oembed?url=${encodeURIComponent(url)}`;
+        // Using the official Twitter oEmbed provider.
+        oembedUrl = `https://publish.twitter.com/oembed?url=${encodeURIComponent(finalUrl)}`;
     }
     else if (platform === 'INSTAGRAM') {
         const appId = process.env.FB_APP_ID;
         const clientToken = process.env.FB_CLIENT_TOKEN;
         if (!appId || !clientToken)
             throw new Error('Facebook App ID and Client Token are required for Instagram previews.');
-        oembedUrl = `https://graph.facebook.com/v19.0/instagram_oembed?url=${encodeURIComponent(url)}&access_token=${appId}|${clientToken}`;
+        oembedUrl = `https://graph.facebook.com/v19.0/instagram_oembed?url=${encodeURIComponent(finalUrl)}&access_token=${appId}|${clientToken}`;
     }
     else {
         throw new Error('Unsupported oEmbed platform');
     }
     const { data } = await axios_1.default.get(oembedUrl);
+    console.log(data);
+    // Construct title and description
+    const title = data.author_name ? `Post by ${data.author_name}` : 'Post on X';
+    const description = data.html ? data.html.replace(/<[^>]*>?/gm, '').trim() : '';
+    let thumbnailUrl = data.thumbnail_url || '';
     return {
-        title: data.title || data.author_name,
-        description: `Post by ${data.author_name}`,
-        thumbnailUrl: data.thumbnail_url || '',
+        title: title,
+        description: description,
+        thumbnailUrl: thumbnailUrl,
         platform,
-        context: data.title || `Post by ${data.author_name}`,
+        context: description || title,
     };
 };
 /**
