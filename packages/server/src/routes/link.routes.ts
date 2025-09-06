@@ -1,24 +1,38 @@
-import { Router } from 'express';
-import { body, param } from 'express-validator';
+import { Router } from "express";
+import { body, param } from "express-validator";
 import {
   createLink,
   deleteLink,
-  getAllLinks,
-  getLinkPreview,
+  getAllLinksForUser,
   updateLink,
-} from '../controllers/link.controller';
-import { chatWithLink } from '../controllers/chat.controller';
+} from "../controllers/link.controller";
+import { protect } from "../middleware/auth.middleware";
 
 const router = Router();
 
-// Link CRUD
-router.get('/links', getAllLinks);
-router.post('/links', body('url').isURL(), createLink);
-router.put('/links/:id', param('id').isInt(), updateLink);
-router.delete('/links/:id', param('id').isInt(), deleteLink);
+router
+  .route("/")
+  .get(
+    protect, // Protect the route
+    getAllLinksForUser
+  )
+  .post(
+    protect, // Protect the route
+    [body("url", "A valid URL is required").isURL()], // Validate the input
+    createLink
+  );
 
-// Preview and Chat
-router.post('/preview', body('url').isURL(), getLinkPreview);
-router.post('/links/:id/chat', param('id').isInt(), body('prompt').isString(), chatWithLink);
+router
+  .route("/:id")
+  .put(
+    protect,
+    [param("id", "A valid link ID is required").isInt()],
+    updateLink
+  )
+  .delete(
+    protect,
+    [param("id", "A valid link ID is required").isInt()], // Validate the parameter
+    deleteLink
+  );
 
 export default router;

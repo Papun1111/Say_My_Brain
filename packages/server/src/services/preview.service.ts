@@ -12,24 +12,52 @@ interface PreviewData {
   thumbnailUrl?: string;
   platform: Platform;
   context: string;
+  embedHtml?: string;
 }
 
-// --- HELPER FUNCTIONS ---
+// --- HELPER & SANITIZING FUNCTIONS ---
 
 /**
- * Extracts the Video ID from various YouTube URL formats.
+ * **REFINED:** This function is updated to be as robust as possible,
+ * prioritizing the reliable regex method to handle all YouTube URL formats.
  * @param url The full YouTube URL.
  * @returns The video ID or null if not found.
  */
 const getYouTubeVideoId = (url: string): string | null => {
+  // This regex is a reliable method to capture the video ID from various URL formats.
   const regex = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/ ]{11})/;
   const match = url.match(regex);
-  return match ? match[1] : null;
+  if (match && match[1]) {
+    return match[1];
+  }
+
+  // As a fallback, try parsing with the URL object for any other edge cases.
+  try {
+    const urlObj = new URL(url);
+    if (urlObj.hostname === 'youtu.be') {
+      return urlObj.pathname.substring(1);
+    }
+    if (urlObj.hostname.includes('youtube.com')) {
+      return urlObj.searchParams.get('v');
+    }
+  } catch (error) {
+    console.error("Could not parse YouTube URL:", error);
+  }
+  
+  return null; // Return null if no ID could be extracted
 };
 
-/**
- * Determines the platform from a given URL.
- */
+
+const sanitizeInstagramUrl = (url: string): string => {
+  const match = url.match(/(https:\/\/(?:www\.)?instagram\.com\/(p|reel|tv|stories)\/[a-zA-Z0-9\-_]+)/);
+  return match?.[0] || url;
+};
+
+const sanitizeXUrl = (url: string): string => {
+  const match = url.match(/(https:\/\/(?:www\.)?(?:twitter|x)\.com\/[a-zA-Z0-9_]+\/status\/[0-9]+)/);
+  return match?.[0] || url;
+};
+
 const getPlatform = (url: string): Platform => {
   if (url.includes('youtube.com') || url.includes('youtu.be')) return 'YOUTUBE';
   if (url.includes('x.com') || url.includes('twitter.com')) return 'X';
@@ -40,10 +68,6 @@ const getPlatform = (url: string): Platform => {
 
 // --- API-SPECIFIC FETCHERS ---
 
-/**
- * Fetches preview data for a YouTube video using the official YouTube Data API.
- * This is the most reliable method.
- */
 const getYouTubePreview = async (url:string): Promise<PreviewData> => {
     const videoId = getYouTubeVideoId(url);
     if (!videoId) throw new Error('Invalid YouTube URL');
@@ -55,7 +79,6 @@ const getYouTubePreview = async (url:string): Promise<PreviewData> => {
     }
     
     const apiUrl = `https://www.googleapis.com/youtube/v3/videos?part=snippet&id=${videoId}&key=${apiKey}`;
-
     const { data } = await axios.get(apiUrl);
     const item = data.items[0];
     if (!item) throw new Error('YouTube video not found.');
@@ -69,133 +92,73 @@ const getYouTubePreview = async (url:string): Promise<PreviewData> => {
         context: snippet.description || snippet.title,
     };
 }
-const sanitizeXUrl = (url: string): string => {
-    const xUrlRegex = /(https:\/\/(?:www\.)?(?:twitter|x)\.com\/[a-zA-Z0-9_]+\/status\/[0-9]+)/;
-    const match = url.match(xUrlRegex);
-    if (match && match[0]) return match[0];
-    try {
-        const urlObject = new URL(url);
-        return `${urlObject.protocol}//${urlObject.hostname}${urlObject.pathname}`;
-    } catch { return url; }
-};
-
-
-
-/**
- * Fetches preview data from oEmbed-compatible sites like X and Instagram.
- */
-const sanitizeInstagramUrl = (url: string): string => {
-    // Regex to capture the base URL of an Instagram post, reel, story, or TV video.
-    // It matches up to the unique ID, ignoring any trailing slashes or query parameters.
-    const instagramUrlRegex = /(https:\/\/(?:www\.)?instagram\.com\/(p|reel|tv|stories)\/[a-zA-Z0-9\-_]+)/;
-    const match = url.match(instagramUrlRegex);
-
-    if (match && match[0]) {
-        // Return the first full match (the clean URL).
-        return match[0];
-    }
-    
-    // If regex fails (e.g., a link to a profile), fall back to the previous method.
-    // This makes the function more robust.
-    console.warn("Regex did not match a specific Instagram post URL, falling back to basic sanitization for:", url);
-    try {
-        const urlObject = new URL(url);
-        return `${urlObject.protocol}//${urlObject.hostname}${urlObject.pathname}`;
-    } catch (error) {
-        console.error("Could not parse URL for sanitization, returning original URL:", url);
-        return url;
-    }
-};
 
 const getOEmbedPreview = async (url: string, platform: Platform): Promise<PreviewData> => {
-    let oembedUrl: string;
     let finalUrl = url;
-
-    // Sanitize the URL based on the platform.
     if (platform === 'INSTAGRAM') {
         finalUrl = sanitizeInstagramUrl(url);
     } else if (platform === 'X') {
         finalUrl = sanitizeXUrl(url);
     }
 
+    let oembedUrl: string;
     if (platform === 'X') {
-        // Using the official Twitter oEmbed provider.
         oembedUrl = `https://publish.twitter.com/oembed?url=${encodeURIComponent(finalUrl)}`;
     } else if (platform === 'INSTAGRAM') {
-        const appId = process.env.FB_APP_ID;
-        const clientToken = process.env.FB_CLIENT_TOKEN;
-        if (!appId || !clientToken) throw new Error('Facebook App ID and Client Token are required for Instagram previews.');
-        oembedUrl = `https://graph.facebook.com/v19.0/instagram_oembed?url=${encodeURIComponent(finalUrl)}&access_token=${appId}|${clientToken}`;
+        const { FB_APP_ID, FB_CLIENT_TOKEN } = process.env;
+        if (!FB_APP_ID || !FB_CLIENT_TOKEN) throw new Error('Facebook credentials are required for Instagram previews.');
+        oembedUrl = `https://graph.facebook.com/v19.0/instagram_oembed?url=${encodeURIComponent(finalUrl)}&access_token=${FB_APP_ID}|${FB_CLIENT_TOKEN}`;
     } else {
         throw new Error('Unsupported oEmbed platform');
     }
 
     const { data } = await axios.get(oembedUrl);
-console.log(data);
-    // Construct title and description
-    const title = data.author_name ? `Post by ${data.author_name}` : 'Post on X';
-    const description = data.html ? data.html.replace(/<[^>]*>?/gm, '').trim() : '';
-    
-    let thumbnailUrl = data.thumbnail_url || '';
 
+    if (platform === 'X') {
+        return {
+            title: `Post by ${data.author_name}`,
+            description: data.html.replace(/<[^>]*>?/gm, '').trim(),
+            platform,
+            context: data.html.replace(/<[^>]*>?/gm, '').trim(),
+            embedHtml: data.html,
+            thumbnailUrl: '',
+        };
+    }
 
     return {
-        title: title,
-        description: description,
-        thumbnailUrl: thumbnailUrl,
+        title: `Post by ${data.author_name}`,
+        description: data.title || '',
+        thumbnailUrl: data.thumbnail_url || '',
         platform,
-        context: description || title,
+        context: data.title || `Post by ${data.author_name}`,
     };
 };
-/**
- * A fallback scraper for generic websites that don't have a dedicated API.
- */
-const getGenericPreview = async (url: string, platform: Platform): Promise<PreviewData> => {
-  const { data } = await axios.get(url, {
-    headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36' }
-  });
-  
-  const $ = cheerio.load(data);
 
+const getGenericPreview = async (url: string, platform: Platform): Promise<PreviewData> => {
+  const { data } = await axios.get(url, { headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36' } });
+  const $ = cheerio.load(data);
   const title = $('meta[property="og:title"]').attr('content') || $('title').text() || 'No Title Found';
   const description = $('meta[property="og:description"]').attr('content') || $('meta[name="description"]').attr('content') || '';
   const thumbnailUrl = $('meta[property="og:image"]').attr('content') || $('meta[name="twitter:image"]').attr('content') || '';
   const context = $('body').text().replace(/\s\s+/g, ' ').trim().substring(0, 4000);
-
   return { title, description, thumbnailUrl, platform, context: context || description || title };
 };
 
 
 // --- MAIN EXPORTED FUNCTION ---
 
-/**
- * Main function to fetch preview data. It determines the platform and routes
- * the request to the appropriate handler (API, oEmbed, or generic scraper).
- */
 export const fetchPreviewData = async (url: string): Promise<PreviewData> => {
   const platform = getPlatform(url);
-
   try {
     switch (platform) {
-      case 'YOUTUBE':
-        return await getYouTubePreview(url);
+      case 'YOUTUBE': return await getYouTubePreview(url);
       case 'X':
-      case 'INSTAGRAM':
-        return await getOEmbedPreview(url, platform);
-      case 'OTHER':
-      default:
-        return await getGenericPreview(url, 'OTHER');
+      case 'INSTAGRAM': return await getOEmbedPreview(url, platform);
+      default: return await getGenericPreview(url, 'OTHER');
     }
   } catch (error) {
     console.error(`Failed to fetch preview for ${url} with method ${platform}. Error:`, (error as any).message);
-    // As a final fallback, if the specialized method fails, try the generic scraper.
-    console.log("Attempting fallback to generic scraping...");
-    try {
-        return await getGenericPreview(url, platform);
-    } catch (fallbackError) {
-        console.error(`Generic scraping fallback also failed for ${url}. Error:`, (fallbackError as any).message);
-        throw new Error('Could not fetch URL metadata with any available method.');
-    }
+    return getGenericPreview(url, platform);
   }
 };
 

@@ -1,10 +1,28 @@
 import axios from 'axios';
 
 const api = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5001/api',
+  baseURL: process.env.NEXT_PUBLIC_API_BASE_URL,
 });
 
-// Types based on Prisma schema
+// This interceptor runs before every API request.
+// It automatically attaches the user's authentication token to the header.
+api.interceptors.request.use(
+  (config) => {
+    // Get the token from the browser's local storage.
+    const token = localStorage.getItem('authToken');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
+  }
+);
+
+
+// --- TYPE DEFINITIONS ---
+// Updated to include all fields from the backend
 export interface Link {
   id: number;
   url: string;
@@ -12,30 +30,58 @@ export interface Link {
   description: string | null;
   thumbnailUrl: string | null;
   platform: 'YOUTUBE' | 'X' | 'INSTAGRAM' | 'OTHER';
+  embedHtml: string | null;
   createdAt: string;
 }
 
-export interface PreviewData {
-  title: string;
-  description?: string;
-  thumbnailUrl?: string;
+export interface User {
+    id: string;
+    shareId: string;
 }
 
-// API Functions
+// --- NEW AUTH & USER API FUNCTIONS ---
 
 /**
- * Fetches all links from the server.
+ * Registers a new anonymous user with the backend.
+ * @returns A promise that resolves to an object containing the user's token and shareId.
+ */
+export const registerUser = async (): Promise<{ token: string; shareId: string }> => {
+    const response = await api.post('/users/register');
+    return response.data;
+};
+
+/**
+ * Fetches the details for the currently authenticated user.
+ * @returns A promise that resolves to the User object.
+ */
+export const getMe = async (): Promise<User> => {
+    const response = await api.get('/users/me');
+    return response.data;
+};
+
+/**
+ * Fetches all links for a specific shared brain.
+ * @param shareId The unique ID of the brain to fetch.
  * @returns A promise that resolves to an array of Link objects.
  */
-export const getAllLinks = async (): Promise<Link[]> => {
+export const getSharedLinks = async (shareId: string): Promise<Link[]> => {
+    const response = await api.get(`/shared/${shareId}`);
+    return response.data;
+};
+
+
+// --- UPDATED LINK & CHAT API FUNCTIONS ---
+
+/**
+ * Fetches all links for the currently authenticated user.
+ */
+export const getAllLinksForUser = async (): Promise<Link[]> => {
   const response = await api.get('/links');
   return response.data;
 };
 
 /**
- * Creates a new link by sending a URL to the server.
- * @param url - The URL of the link to save.
- * @returns A promise that resolves to the newly created Link object.
+ * Creates a new link for the authenticated user.
  */
 export const createLink = async (url: string): Promise<Link> => {
   const response = await api.post('/links', { url });
@@ -43,31 +89,17 @@ export const createLink = async (url: string): Promise<Link> => {
 };
 
 /**
- * Deletes a link by its ID.
- * @param id - The ID of the link to delete.
+ * Deletes a link for the authenticated user.
  */
 export const deleteLink = async (id: number): Promise<void> => {
   await api.delete(`/links/${id}`);
 };
 
 /**
- * Fetches a preview for a given URL.
- * @param url - The URL to get a preview for.
- * @returns A promise that resolves to the preview data.
- */
-export const getPreview = async (url: string): Promise<PreviewData> => {
-  const response = await api.post('/preview', { url });
-  return response.data;
-};
-
-/**
- * Sends a chat prompt related to a specific link and gets an AI response.
- * @param id - The ID of the link to chat about.
- * @param prompt - The user's question or prompt.
- * @returns A promise that resolves to an object containing the AI's response.
+ * Sends a chat prompt about a specific link to the Gemini AI.
  */
 export const chatWithLink = async (id: number, prompt: string): Promise<{ response: string }> => {
-  const response = await api.post(`/links/${id}/chat`, { prompt });
+  const response = await api.post(`/chat/${id}`, { prompt });
   return response.data;
 };
 

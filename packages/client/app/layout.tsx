@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
 import './globals.css';
 import { Toaster } from 'react-hot-toast';
-
+import Script from 'next/script'; 
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
@@ -25,6 +25,10 @@ export default function RootLayout({
       <body className={`${inter.className} bg-slate-100 text-slate-800`}>
         <Toaster position="top-center" />
         <main>{children}</main>
+         <Script 
+          src="https://platform.twitter.com/widgets.js" 
+          strategy="lazyOnload" 
+        />
       </body>
     </html>
   );

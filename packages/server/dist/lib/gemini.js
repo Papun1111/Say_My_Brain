@@ -7,7 +7,11 @@ exports.getGeminiResponse = void 0;
 const generative_ai_1 = require("@google/generative-ai");
 const dotenv_1 = __importDefault(require("dotenv"));
 dotenv_1.default.config();
-const genAI = new generative_ai_1.GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+const apiKey = process.env.GEMINI_API_KEY;
+if (!apiKey) {
+    throw new Error("GEMINI_API_KEY is not defined in your environment variables.");
+}
+const genAI = new generative_ai_1.GoogleGenerativeAI(apiKey);
 const getGeminiResponse = async (prompt) => {
     try {
         const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });

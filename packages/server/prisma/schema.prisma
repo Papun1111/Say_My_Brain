@@ -7,17 +7,40 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// -- NEW USER MODEL --
+model User {
+  id        String   @id @default(cuid())
+  // A unique, shareable ID for a user's brain
+  shareId   String   @unique @default(cuid())
+  createdAt DateTime @default(now())
+
+  // Relation: A user can have many links
+  links Link[]
+
+  @@map("users")
+}
+// --------------------
+
 model Link {
   id           Int      @id @default(autoincrement())
-  url          String   @unique
+  url          String
   title        String
   description  String?
   thumbnailUrl String?
   platform     Platform
-  context      String? // Extracted text content for Gemini
+  context      String?
+  embedHtml    String?
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
+  // -- RELATION TO USER --
+  // Each link must belong to a user
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  // -------------------------
+
+  // Ensure a user cannot save the same URL twice
+  @@unique([userId, url])
   @@map("links")
 }
 
@@ -27,3 +50,4 @@ enum Platform {
   INSTAGRAM
   OTHER
 }
+
