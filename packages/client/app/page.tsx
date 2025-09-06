@@ -82,7 +82,7 @@ export default function HomePage() {
             <BrainCircuit className="w-9 h-9 text-sky-300" />
             <h1 className="text-4xl font-bold text-slate-100 tracking-tight">Say My Brain</h1>
           </div>
-          <Button onClick={() => setIsModalOpen(true)} disabled={!user}>
+          <Button variant='ghost' onClick={() => setIsModalOpen(true)} disabled={!user}>
             <Plus className="w-5 h-5 mr-2" />
             Add Link
           </Button>
