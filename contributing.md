@@ -40,9 +40,6 @@ npm install
 Create a `.env` file in the `packages/server` directory. Copy the contents from `.env.example` and paste them into your new `.env` file. Fill in the required values for the database, `JWT_SECRET`, and your API keys.
 
 **Start the database (from the project root):**
-```bash
-docker-compose up -d db
-```
 
 **Run database migrations:**
 ```bash
