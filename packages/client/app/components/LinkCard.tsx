@@ -10,7 +10,7 @@ interface LinkCardProps {
   link: Link;
   onChat?: (link: Link) => void;
   refreshLinks?: () => void;
-  isSharedView?: boolean; // New prop to indicate if it's a shared view
+  isSharedView?: boolean;
 }
 
 const PlatformIcon = ({ platform }: { platform: string }) => {
@@ -36,7 +36,6 @@ export default function LinkCard({ link, onChat, refreshLinks, isSharedView = fa
     }
   };
   
-  // This effect tells Twitter's script to render any new tweets that are added to the page.
   useEffect(() => {
     if (link.platform === 'X' && link.embedHtml) {
       // @ts-ignore - 'twttr' is from an external script loaded in layout.tsx
@@ -47,78 +46,111 @@ export default function LinkCard({ link, onChat, refreshLinks, isSharedView = fa
     }
   }, [link.platform, link.embedHtml]);
 
-
-  // --- CONDITIONAL RENDERING LOGIC ---
-
-  // If the link is a tweet with embeddable HTML, render it directly.
+  // Twitter/X embed card
   if (link.platform === 'X' && link.embedHtml) {
     return (
-        <motion.div 
-          // FIX: The container is simplified to prevent styling conflicts with the embed.
-          className="bg-white rounded-xl shadow-sm border border-stone-200 flex flex-col group relative"
-          whileHover={{ y: -5, boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.07), 0 4px 6px -2px rgba(0, 0, 0, 0.04)" }}
-          transition={{ duration: 0.2 }}
+      <motion.div 
+        className="bg-white rounded-xl shadow-sm border border-stone-200 flex flex-col group relative min-h-[400px] max-h-[400px]"
+        whileHover={{ y: -5, boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.07), 0 4px 6px -2px rgba(0, 0, 0, 0.04)" }}
+        transition={{ duration: 0.2 }}
+      >
+        {/* Twitter embed container */}
+        <div 
+          className="flex-1 overflow-hidden p-2 flex items-center justify-center"
+          style={{ maxHeight: isSharedView ? '400px' : '320px' }}
         >
-            {/* FIX: This div now has no padding. The blockquote itself will be styled
-              by Twitter's script, ensuring everything is visible.
-            */}
-            <div dangerouslySetInnerHTML={{ __html: link.embedHtml }} />
-            
-            {!isSharedView && (
-                <div className="p-4 bg-stone-50 border-t border-stone-200 flex justify-between items-center mt-auto">
-                    <button onClick={() => onChat?.(link)} className="flex items-center gap-2 text-sm text-sky-600 font-semibold hover:text-sky-800 transition-colors">
-                        <MessageSquare className="w-4 h-4" />
-                        Chat
-                    </button>
-                    <button onClick={handleDelete} className="text-zinc-400 hover:text-red-500 transition-colors">
-                        <Trash2 className="w-4 h-4" />
-                    </button>
-                </div>
-            )}
-        </motion.div>
+          <div dangerouslySetInnerHTML={{ __html: link.embedHtml }} />
+        </div>
+        
+        {/* Action buttons - Always visible unless shared view */}
+        {!isSharedView && (
+          <div className="p-4 bg-stone-50 border-t border-stone-200 flex justify-between items-center flex-shrink-0">
+            <button 
+              onClick={() => onChat?.(link)} 
+              className="flex items-center gap-2 text-sm text-sky-600 font-semibold hover:text-sky-800 transition-colors"
+            >
+              <MessageSquare className="w-4 h-4" />
+              Chat
+            </button>
+            <button 
+              onClick={handleDelete} 
+              className="text-zinc-400 hover:text-red-500 transition-colors"
+            >
+              <Trash2 className="w-4 h-4" />
+            </button>
+          </div>
+        )}
+      </motion.div>
     );
   }
 
-  // Otherwise, render the standard card for YouTube, Instagram, etc.
+  // Standard card for YouTube, Instagram, etc.
   return (
     <motion.div 
-      className="bg-white rounded-xl shadow-sm border border-stone-200 overflow-hidden flex flex-col group relative"
+      className="bg-white rounded-xl shadow-sm border border-stone-200 overflow-hidden flex flex-col group relative min-h-[400px] max-h-[400px]"
       whileHover={{ y: -5, boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.07), 0 4px 6px -2px rgba(0, 0, 0, 0.04)" }}
       transition={{ duration: 0.2 }}
     >
-      <a href={link.url} target="_blank" rel="noopener noreferrer" className="block overflow-hidden">
+      {/* Image section */}
+      <a href={link.url} target="_blank" rel="noopener noreferrer" className="block overflow-hidden flex-shrink-0">
         <img
           src={link.thumbnailUrl || 'https://placehold.co/600x400/e2e8f0/475569?text=No+Preview'}
-          alt={link.title}
-          className="w-full h-40 object-cover transition-transform duration-300 group-hover:scale-105"
+          alt={link.title || 'Link preview'}
+          className="w-full h-[160px] object-cover transition-transform duration-300 group-hover:scale-105"
           onError={(e) => { (e.target as HTMLImageElement).src = 'https://placehold.co/600x400/f8fafc/94a3b8?text=Error'; }}
         />
       </a>
-      <div className="p-4 flex flex-col flex-grow">
+
+      {/* Content section */}
+      <div className="p-4 flex flex-col flex-1">
+        {/* Platform indicator */}
         <div className="flex items-center gap-2 mb-2">
           <PlatformIcon platform={link.platform} />
-          <span className="text-xs font-semibold text-zinc-600 uppercase tracking-wider">{link.platform}</span>
+          <span className="text-xs font-semibold text-zinc-600 uppercase tracking-wider">
+            {link.platform}
+          </span>
         </div>
-        <h3 className="font-bold text-lg leading-tight text-zinc-900 mb-2 flex-grow">
-          <a href={link.url} target="_blank" rel="noopener noreferrer" className="hover:text-sky-600 transition-colors">
+
+        {/* Title */}
+        <h3 className="font-bold text-lg leading-tight text-zinc-900 mb-2">
+          <a 
+            href={link.url} 
+            target="_blank" 
+            rel="noopener noreferrer" 
+            className="hover:text-sky-600 transition-colors line-clamp-3"
+            title={link.title || ''}
+          >
             {link.title}
           </a>
         </h3>
-        <p className="text-sm text-zinc-700 line-clamp-2">{link.description}</p>
+
+        {/* Description - Fixed the title attribute issue */}
+        <p 
+          className="text-sm text-zinc-700 line-clamp-2 flex-1"
+          title={link.description || ''}
+        >
+          {link.description}
+        </p>
       </div>
       
+      {/* Action buttons - Always visible unless shared view */}
       {!isSharedView && (
-          <div className="p-4 bg-stone-50 border-t border-stone-200 flex justify-between items-center mt-auto">
-            <button onClick={() => onChat?.(link)} className="flex items-center gap-2 text-sm text-sky-600 font-semibold hover:text-sky-800 transition-colors">
-                <MessageSquare className="w-4 h-4" />
-                Chat
-            </button>
-            <button onClick={handleDelete} className="text-zinc-400 hover:text-red-500 transition-colors">
-                <Trash2 className="w-4 h-4" />
-            </button>
+        <div className="p-4 bg-stone-50 border-t border-stone-200 flex justify-between items-center flex-shrink-0">
+          <button 
+            onClick={() => onChat?.(link)} 
+            className="flex items-center gap-2 text-sm text-sky-600 font-semibold hover:text-sky-800 transition-colors"
+          >
+            <MessageSquare className="w-4 h-4" />
+            Chat
+          </button>
+          <button 
+            onClick={handleDelete} 
+            className="text-zinc-400 hover:text-red-500 transition-colors"
+          >
+            <Trash2 className="w-4 h-4" />
+          </button>
         </div>
       )}
     </motion.div>
   );
 }
-

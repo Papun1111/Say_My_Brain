@@ -18,14 +18,22 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
 
     const variantClasses = {
       primary:
-        "bg-indigo-600 text-white hover:bg-indigo-700 focus:ring-indigo-500",
+        // Deep green base with lighter hover
+        "bg-[#369457] text-[#fdfaf6] hover:bg-[#29773e] focus:ring-[#29773e]",
       secondary:
-        "bg-slate-200 text-slate-800 hover:bg-slate-300 focus:ring-slate-400",
+        // Softer neutral greenish-gray for secondary buttons
+        "bg-[#d7e3d7] text-[#1f6032] hover:bg-[#c6d6c6] focus:ring-[#369457]",
       ghost:
-        "bg-slate-100 text-slate-800 hover:bg-slate-200 hover:text-slate-900 focus:ring-slate-200 transform transition-all duration-200 ease-in-out hover:scale-105",
+        // Minimal button with subtle hover effect
+        "bg-transparent text-[#1f6032] hover:bg-[#e9f0e5] focus:ring-[#d7e3d7] transform transition-all duration-200 ease-in-out hover:scale-105",
     };
 
-    const classes = cn(baseClasses, variantClasses[variant], "px-4 py-2", className);
+    const classes = cn(
+      baseClasses,
+      variantClasses[variant],
+      "px-4 py-2",
+      className
+    );
 
     return (
       <button className={classes} ref={ref} {...props}>
@@ -36,4 +44,3 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
 );
 
 Button.displayName = "Button";
-
