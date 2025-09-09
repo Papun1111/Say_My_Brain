@@ -10,12 +10,11 @@ interface ShareBrainProps {
 
 export default function ShareBrain({ shareId }: ShareBrainProps) {
   const [copied, setCopied] = useState(false);
-  const shareUrl = `${window.location.origin}/shared/${shareId}`;
 
   const handleCopy = () => {
-    navigator.clipboard.writeText(shareUrl);
+    navigator.clipboard.writeText(shareId); // Changed from shareUrl to shareId
     setCopied(true);
-    toast.success("Share link copied!");
+    toast.success("Share ID copied!"); // Updated message
     setTimeout(() => setCopied(false), 2000);
   };
 
@@ -23,13 +22,13 @@ export default function ShareBrain({ shareId }: ShareBrainProps) {
     <div className="bg-white p-4 rounded-lg shadow-sm border border-slate-200">
       <h3 className="font-semibold text-slate-800 mb-2">Share Your Brain</h3>
       <p className="text-sm text-slate-500 mb-3">
-        Anyone with this link will be able to view your saved links.
+        Anyone with this ID will be able to view your saved links.
       </p>
       <div className="flex items-center gap-2">
         <input
           type="text"
           readOnly
-          value={shareUrl}
+          value={shareId}
           className="flex-grow bg-slate-100 border border-slate-300 rounded-md px-3 py-1.5 text-sm text-slate-700"
         />
         <button
