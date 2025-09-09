@@ -19,6 +19,7 @@ export default function AddLinkModal({ isOpen, onClose, onLinkAdded }: AddLinkMo
   const [url, setUrl] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
+  const [linkWasAdded, setLinkWasAdded] = useState(false);
 
   const handleUrlChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setUrl(e.target.value);
@@ -37,6 +38,7 @@ export default function AddLinkModal({ isOpen, onClose, onLinkAdded }: AddLinkMo
       setIsSubmitting(true);
       await createLink(url);
       toast.success('Link saved successfully!');
+      setLinkWasAdded(true);
       onLinkAdded();
       handleClose();
     } catch (err: any) {
@@ -48,11 +50,41 @@ export default function AddLinkModal({ isOpen, onClose, onLinkAdded }: AddLinkMo
     }
   };
 
+  // Enhanced handleClose with Twitter widget refresh
   const handleClose = () => {
     setUrl('');
     setError('');
     setIsSubmitting(false);
     onClose();
+    
+    // Small delay to ensure modal close animation completes, then refresh Twitter widgets
+    setTimeout(() => {
+      // Force Twitter widgets to reload to prevent shrinking
+      // @ts-ignore
+      if (window.twttr && window.twttr.widgets) {
+        // @ts-ignore
+        window.twttr.widgets.load();
+      }
+      
+      // Alternative approach: Refresh all Twitter embeds specifically
+      const twitterEmbeds = document.querySelectorAll('.twitter-embed-container');
+      twitterEmbeds.forEach((embed) => {
+        const originalHTML = embed.innerHTML;
+        embed.innerHTML = '';
+        
+        setTimeout(() => {
+          embed.innerHTML = originalHTML;
+          // @ts-ignore
+          if (window.twttr && window.twttr.widgets) {
+            // @ts-ignore
+            window.twttr.widgets.load(embed);
+          }
+        }, 100);
+      });
+    }, 300); // Wait for modal close animation
+
+    // Reset the linkWasAdded state
+    setLinkWasAdded(false);
   };
 
   return (
@@ -68,10 +100,10 @@ export default function AddLinkModal({ isOpen, onClose, onLinkAdded }: AddLinkMo
             transition={{ duration: 0.3 }}
             style={{
               backdropFilter: 'blur(8px)',
-              WebkitBackdropFilter: 'blur(8px)', // Safari support
-              backgroundColor: 'rgba(0, 0, 0, 0.5)', // Darker black tint (increased from 0.3 to 0.5)
+              WebkitBackdropFilter: 'blur(8px)',
+              backgroundColor: 'rgba(0, 0, 0, 0.5)',
             }}
-            onClick={handleClose} // Tap anywhere to close
+            onClick={handleClose} // Updated to use enhanced handleClose
           />
         )}
       </AnimatePresence>
@@ -92,7 +124,7 @@ export default function AddLinkModal({ isOpen, onClose, onLinkAdded }: AddLinkMo
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.9, opacity: 0 }}
               transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-              onClick={(e) => e.stopPropagation()} // Prevent closing when clicking inside modal
+              onClick={(e) => e.stopPropagation()}
             >
               {/* Modal Header */}
               <div className="p-6 border-b border-gray-200">
@@ -101,7 +133,7 @@ export default function AddLinkModal({ isOpen, onClose, onLinkAdded }: AddLinkMo
                     Add a New Link
                   </h2>
                   <button
-                    onClick={handleClose}
+                    onClick={handleClose} // Updated to use enhanced handleClose
                     className="p-2 hover:bg-gray-100 rounded-full transition-colors"
                   >
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

@@ -38,6 +38,24 @@ export default function ChatDrawer({ link, isOpen, onClose }: ChatDrawerProps) {
     }
   }, [isOpen, link]);
 
+  // Handle drawer close with refresh
+  const handleClose = () => {
+    onClose();
+    
+    // Small delay to ensure drawer animation completes, then refresh
+    setTimeout(() => {
+      // Force Twitter widgets to reload
+      // @ts-ignore
+      if (window.twttr && window.twttr.widgets) {
+        // @ts-ignore
+        window.twttr.widgets.load();
+      }
+      
+      // Alternative: Full page refresh (more aggressive but guaranteed to work)
+      // window.location.reload();
+    }, 300); // Wait for drawer close animation
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!prompt.trim() || isLoading) return;
@@ -72,10 +90,10 @@ export default function ChatDrawer({ link, isOpen, onClose }: ChatDrawerProps) {
             transition={{ duration: 0.3 }}
             style={{
               backdropFilter: 'blur(8px)',
-              WebkitBackdropFilter: 'blur(8px)', // Safari support
-              backgroundColor: 'rgba(0, 0, 0, 0.3)', // Light black tint (increased from 0.1 to 0.3)
+              WebkitBackdropFilter: 'blur(8px)',
+              backgroundColor: 'rgba(0, 0, 0, 0.3)',
             }}
-            onClick={onClose}
+            onClick={handleClose} // Updated to use handleClose
           />
         )}
       </AnimatePresence>
@@ -97,7 +115,7 @@ export default function ChatDrawer({ link, isOpen, onClose }: ChatDrawerProps) {
                   Chat with: {link.title}
                 </h2>
                 <button
-                  onClick={onClose}
+                  onClick={handleClose} // Updated to use handleClose
                   className="p-2 hover:bg-gray-100 rounded-full transition-colors"
                 >
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
