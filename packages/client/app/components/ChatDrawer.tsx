@@ -1,12 +1,12 @@
 "use client";
 
 import { useState, useRef, useEffect } from 'react';
-import { Drawer } from './ui/Drawer';
+// We keep original imports
 import { Input } from './ui/Input';
 import { Button } from './ui/Button';
 import { Link, chatWithLink } from '../services/api';
-import { Send, Loader2, User, Bot } from 'lucide-react';
-import { motion, AnimatePresence } from 'motion/react';
+import { Send, Loader2, User, Bot, Terminal, X } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 
 interface ChatDrawerProps {
   link: Link;
@@ -38,22 +38,17 @@ export default function ChatDrawer({ link, isOpen, onClose }: ChatDrawerProps) {
     }
   }, [isOpen, link]);
 
-  // Handle drawer close with refresh
+  // Handle drawer close with refresh logic preserved
   const handleClose = () => {
     onClose();
     
-    // Small delay to ensure drawer animation completes, then refresh
     setTimeout(() => {
-      // Force Twitter widgets to reload
       // @ts-ignore
       if (window.twttr && window.twttr.widgets) {
         // @ts-ignore
         window.twttr.widgets.load();
       }
-      
-      // Alternative: Full page refresh (more aggressive but guaranteed to work)
-      // window.location.reload();
-    }, 300); // Wait for drawer close animation
+    }, 300);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -70,7 +65,7 @@ export default function ChatDrawer({ link, isOpen, onClose }: ChatDrawerProps) {
       const aiMessage: Message = { sender: 'ai', text: response.response };
       setMessages(prev => [...prev, aiMessage]);
     } catch (error) {
-      const errorMessage: Message = { sender: 'ai', text: 'Sorry, I had trouble getting a response. Please try again.' };
+      const errorMessage: Message = { sender: 'ai', text: 'CONNECTION ERROR: UNABLE TO RETRIEVE DATA.' };
       setMessages(prev => [...prev, errorMessage]);
     } finally {
       setIsLoading(false);
@@ -79,56 +74,65 @@ export default function ChatDrawer({ link, isOpen, onClose }: ChatDrawerProps) {
 
   return (
     <>
-      {/* Blurred Background Overlay with Light Black Tint */}
+      {/* Backdrop - Darker and blurred for focus */}
       <AnimatePresence>
         {isOpen && (
           <motion.div
-            className="fixed inset-0 z-40"
+            className="fixed inset-0 z-40 cursor-pointer bg-black/80 backdrop-blur-sm"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.3 }}
-            style={{
-              backdropFilter: 'blur(8px)',
-              WebkitBackdropFilter: 'blur(8px)',
-              backgroundColor: 'rgba(0, 0, 0, 0.3)',
-            }}
-            onClick={handleClose} // Updated to use handleClose
+            onClick={handleClose}
           />
         )}
       </AnimatePresence>
 
-      {/* Custom Drawer with enhanced styling */}
+      {/* Drawer Container */}
       <AnimatePresence>
         {isOpen && (
           <motion.div
-            className="fixed right-0 top-0 h-full w-full max-w-md z-50 bg-white shadow-2xl"
+            className="fixed right-0 top-0 h-full w-full max-w-md z-50 bg-[#0a0a0a] shadow-[0_0_50px_rgba(0,0,0,0.8)] border-l border-white/10"
             initial={{ x: '100%' }}
             animate={{ x: 0 }}
             exit={{ x: '100%' }}
             transition={{ type: 'spring', damping: 25, stiffness: 300 }}
           >
-            {/* Drawer Header */}
-            <div className="p-4 border-b border-gray-200 bg-white">
-              <div className="flex items-center justify-between">
-                <h2 className="text-lg font-semibold text-gray-900 truncate">
-                  Chat with: {link.title}
-                </h2>
-                <button
-                  onClick={handleClose} // Updated to use handleClose
-                  className="p-2 hover:bg-gray-100 rounded-full transition-colors"
-                >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
+            {/* Header */}
+            <div className="p-4 border-b border-white/10 bg-[#0f0f0f] flex items-center justify-between">
+              <div className="flex items-center gap-3 overflow-hidden">
+                <div className="p-2 bg-[#22c55e]/10 rounded-sm text-[#22c55e] border border-[#22c55e]/20">
+                  <Terminal size={18} />
+                </div>
+                <div className="flex flex-col overflow-hidden">
+                   <h2 className="text-sm font-black uppercase tracking-widest text-white truncate">
+                     {link.title}
+                   </h2>
+                   <span className="text-[10px] font-mono text-[#22c55e]">SECURE CHANNEL ESTABLISHED</span>
+                </div>
               </div>
+              
+              <button
+                onClick={handleClose}
+                className="p-2 hover:bg-white/5 rounded-sm transition-colors text-gray-500 hover:text-white group"
+              >
+                <X size={20} className="group-hover:rotate-90 transition-transform duration-300" />
+              </button>
             </div>
 
-            {/* Chat Content */}
-            <div className="flex flex-col h-full bg-slate-50" style={{ height: 'calc(100% - 73px)' }}>
-              {/* Chat Messages */}
-              <div className="flex-grow overflow-y-auto p-4 space-y-6">
+            {/* Chat Area */}
+            <div className="flex flex-col h-full bg-[#050505]" style={{ height: 'calc(100% - 73px)' }}>
+              
+              {/* Messages List */}
+              <div className="flex-grow overflow-y-auto p-4 space-y-6 scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-black">
+                
+                {/* Initial System Message (Visual Flourish) */}
+                <div className="flex justify-center my-4">
+                  <span className="text-[10px] text-gray-600 font-mono border border-white/5 px-2 py-1 rounded-sm">
+                    BEGIN ENCRYPTED TRANSMISSION
+                  </span>
+                </div>
+
                 <AnimatePresence>
                   {messages.map((msg, index) => (
                     <motion.div
@@ -139,60 +143,72 @@ export default function ChatDrawer({ link, isOpen, onClose }: ChatDrawerProps) {
                       exit={{ opacity: 0, y: 10 }}
                       transition={{ duration: 0.3 }}
                     >
+                      {/* AI Avatar */}
                       {msg.sender === 'ai' && (
-                        <div className="w-8 h-8 rounded-full bg-sky-100 flex items-center justify-center flex-shrink-0">
-                          <Bot className="w-5 h-5 text-sky-600" />
+                        <div className="w-8 h-8 rounded-sm bg-white/5 border border-white/10 flex items-center justify-center flex-shrink-0 mt-1">
+                          <Bot className="w-4 h-4 text-[#22c55e]" />
                         </div>
                       )}
-                      <div className={`p-3 rounded-xl max-w-sm text-sm shadow-sm ${
+                      
+                      {/* Message Bubble */}
+                      <div className={`p-3 rounded-sm text-sm max-w-[85%] leading-relaxed ${
                         msg.sender === 'user' 
-                          ? 'bg-sky-600 text-white rounded-br-none' 
-                          : 'bg-white text-slate-800 rounded-bl-none border'
+                          ? 'bg-[#22c55e] text-black font-semibold shadow-[0_0_15px_rgba(34,197,94,0.3)]' 
+                          : 'bg-[#111] text-gray-300 border border-white/10 font-mono text-xs md:text-sm'
                       }`}>
                         {msg.text}
                       </div>
+
+                      {/* User Avatar */}
                       {msg.sender === 'user' && (
-                        <div className="w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center flex-shrink-0">
-                          <User className="w-5 h-5 text-slate-600" />
+                        <div className="w-8 h-8 rounded-sm bg-white/10 flex items-center justify-center flex-shrink-0 mt-1">
+                          <User className="w-4 h-4 text-gray-400" />
                         </div>
                       )}
                     </motion.div>
                   ))}
                 </AnimatePresence>
                 
-                {/* Loading Animation */}
+                {/* Loading State */}
                 {isLoading && (
                   <motion.div 
                     className="flex items-start gap-3"
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                   >
-                    <div className="w-8 h-8 rounded-full bg-sky-100 flex items-center justify-center flex-shrink-0">
-                      <Bot className="w-5 h-5 text-sky-600" />
+                    <div className="w-8 h-8 rounded-sm bg-white/5 border border-white/10 flex items-center justify-center flex-shrink-0">
+                      <Bot className="w-4 h-4 text-[#22c55e]" />
                     </div>
-                    <div className="p-3 rounded-xl bg-white shadow-sm flex items-center border">
-                      <span className="w-2 h-2 bg-slate-400 rounded-full animate-bounce mr-1"></span>
-                      <span style={{ animationDelay: '0.15s' }} className="w-2 h-2 bg-slate-400 rounded-full animate-bounce mr-1"></span>
-                      <span style={{ animationDelay: '0.3s' }} className="w-2 h-2 bg-slate-400 rounded-full animate-bounce"></span>
+                    <div className="p-4 rounded-sm bg-[#111] border border-white/10 flex items-center gap-1">
+                      <span className="w-1.5 h-1.5 bg-[#22c55e] rounded-full animate-pulse"></span>
+                      <span style={{ animationDelay: '0.15s' }} className="w-1.5 h-1.5 bg-[#22c55e] rounded-full animate-pulse"></span>
+                      <span style={{ animationDelay: '0.3s' }} className="w-1.5 h-1.5 bg-[#22c55e] rounded-full animate-pulse"></span>
                     </div>
                   </motion.div>
                 )}
                 <div ref={messagesEndRef} />
               </div>
 
-              {/* Input Form */}
-              <div className="p-4 border-t border-slate-200 bg-white">
-                <form onSubmit={handleSubmit} className="flex gap-2">
+              {/* Input Area */}
+              <div className="p-4 border-t border-white/10 bg-[#0f0f0f]">
+                <form onSubmit={handleSubmit} className="flex gap-2 relative">
+                  {/* Decorative corner */}
+                  <div className="absolute -top-1 -left-1 w-2 h-2 border-t border-l border-[#22c55e] opacity-50"></div>
+
                   <Input
                     type="text"
-                    placeholder="Ask a question..."
+                    placeholder="Enter command / query..."
                     value={prompt}
                     onChange={(e) => setPrompt(e.target.value)}
                     disabled={isLoading}
-                    className="flex-grow"
+                    className="flex-grow bg-[#050505] border-white/10 text-white placeholder:text-gray-600 font-mono text-sm focus:border-[#22c55e] focus:ring-0 rounded-sm h-12"
                     autoComplete='off'
                   />
-                  <Button type="submit" disabled={isLoading || !prompt.trim()}>
+                  <Button 
+                    type="submit" 
+                    disabled={isLoading || !prompt.trim()}
+                    className="bg-[#22c55e] hover:bg-[#1ea750] text-black border-none rounded-sm w-12 h-12 flex items-center justify-center shadow-[0_0_10px_rgba(34,197,94,0.3)] hover:shadow-[0_0_20px_rgba(34,197,94,0.6)] transition-all duration-300 disabled:opacity-50 disabled:shadow-none"
+                  >
                     {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5" />}
                   </Button>
                 </form>

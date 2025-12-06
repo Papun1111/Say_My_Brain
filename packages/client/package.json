@@ -9,6 +9,8 @@
   },
   "dependencies": {
     "@headlessui/react": "^2.2.7",
+    "@react-three/fiber": "^9.4.2",
+    "@react-three/postprocessing": "^3.0.4",
     "@tailwindcss/forms": "^0.5.10",
     "axios": "^1.11.0",
     "clsx": "^2.1.1",
@@ -16,10 +18,12 @@
     "lucide-react": "^0.542.0",
     "motion": "^12.23.12",
     "next": "^15.5.7",
+    "postprocessing": "^6.38.0",
     "react": "^19.2.1",
     "react-dom": "^19.2.1",
     "react-hot-toast": "^2.6.0",
-    "tailwind-merge": "^3.3.1"
+    "tailwind-merge": "^3.3.1",
+    "three": "^0.181.2"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
