@@ -181,13 +181,13 @@ export default function HomePage() {
           </div>
           
           <motion.button
-            className="group relative overflow-hidden px-6 py-2 rounded-sm bg-[#22c55e] text-black font-bold uppercase tracking-wider text-xs shadow-[0_0_20px_rgba(34,197,94,0.3)] hover:shadow-[0_0_30px_rgba(34,197,94,0.5)] transition-all"
+            className="group relative flex justify-center align-middle overflow-hidden px-6 py-2 ml-0.5 rounded-sm bg-[#22c55e] text-black font-bold uppercase tracking-wider text-xs shadow-[0_0_20px_rgba(34,197,94,0.3)] hover:shadow-[0_0_30px_rgba(34,197,94,0.5)] transition-all"
             onClick={() => setIsModalOpen(true)}
             disabled={!user}
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
           >
-            <span className="relative z-10 flex items-center gap-2">
+            <span className="relative z-10 flex justify-center items-center gap-2">
                <Plus className="w-4 h-4" /> Initialize Link
             </span>
           </motion.button>
